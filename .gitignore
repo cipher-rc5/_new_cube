@@ -1,0 +1,148 @@
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+.pyright/
+
+# Test / coverage
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+*.cover
+*.py,cover
+
+# Cython
+cython_debug/
+
+# -----------------------------------------------------------------------------
+# Packaging / build artifacts
+# -----------------------------------------------------------------------------
+build/
+dist/
+sdist/
+wheels/
+downloads/
+eggs/
+.eggs/
+*.egg
+*.egg-info/
+*.whl
+.installed.cfg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+share/python-wheels/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# -----------------------------------------------------------------------------
+# Environments
+# uv.lock is committed (binary app, reproducibility matters).
+# Local virtualenvs are not.
+# -----------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# pyenv: .python-version is committed to pin the project interpreter.
+
+# -----------------------------------------------------------------------------
+# Editors / IDEs
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# -----------------------------------------------------------------------------
+# OS
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# -----------------------------------------------------------------------------
+# Jupyter / IPython
+# -----------------------------------------------------------------------------
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# -----------------------------------------------------------------------------
+# Project-specific
+# Large model weights and generated outputs do not belong in git; download
+# weights via `hf download` (see README).
+# -----------------------------------------------------------------------------
+model_weights/
+outputs/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+
+# Generated meshes / renders at the repo root (the committed examples under
+# examples/ are explicitly kept).
+/*.obj
+/*.glb
+/*.gltf
+/*.gif
+/*.mp4
+/*.log
+
+# Personal dev notes and scratch work
+_dev/
+scratch/
+tmp/
+TODO.local.md
+
+# -----------------------------------------------------------------------------
+# Secrets / credentials (defense in depth — never commit these)
+# -----------------------------------------------------------------------------
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.secrets/
+credentials.json
+
+# -----------------------------------------------------------------------------
+# Tooling / agent state
+# -----------------------------------------------------------------------------
+.claude/
+.cursor/
+.aider*
+.continue/

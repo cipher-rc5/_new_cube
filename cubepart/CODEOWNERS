@@ -1,0 +1,7 @@
+# This is the codeowners file. It describes the people who must approve a code review
+# The first entry is a path filter for which things code owners will be required on.
+# Multiple owners on one line will be an OR operation, as long as one approves the whole line is satisfied.
+
+# Default catch-all for anything that isn't more specifically owned.
+
+* @cipher-rc5

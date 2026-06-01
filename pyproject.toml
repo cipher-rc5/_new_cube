@@ -1,0 +1,62 @@
+# new-cube - generative 3D model packaging (uv-native, Python 3.14, Apple Silicon first)
+# Custom fork maintained by cipher-rc5. Based on Roblox/cube (see LICENSE).
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "new-cube"
+version = "0.1.0"
+requires-python = "==3.14.*"
+description = "A generative 3D model to accelerate the creation of 3D assets, accessories, and experiences."
+authors = [
+    { name = "cipher-rc5" }
+]
+keywords = ["new-cube", "cube3d"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "numpy==2.4.6",
+    "torch==2.12.0",
+    "tqdm==4.67.3",
+    "transformers==5.9.0",
+    "omegaconf==2.3.0",
+    "scikit-image==0.26.0",
+    # huggingface-hub 1.x folded the CLI into the core package; the [cli] extra
+    # no longer exists. Declared directly because the documented weight-download
+    # step shells out to its CLI (`hf download`; `huggingface-cli` was removed in 1.x).
+    "huggingface_hub==1.17.0",
+    "trimesh==4.12.2",
+    "safetensors==0.7.0",
+    # Imported unconditionally via cube3d/renderer/renderer.py (from PIL import Image).
+    "pillow==12.2.0",
+]
+
+[project.optional-dependencies]
+# Best-effort: may be dropped if no cp314 wheel is available for pymeshlab.
+meshlab = ["pymeshlab==2025.7.post1"]
+# warp-lang only ships usable CUDA support on Linux; gate it behind this extra.
+cuda = ["warp-lang==1.13.0; sys_platform == 'linux'"]
+# Apple Silicon acceleration backend.
+mlx = ["mlx==0.31.2; sys_platform == 'darwin' and platform_machine == 'arm64'"]
+lint = ["ruff==0.15.15"]
+# Required to run the suite under tests/ (see USAGE.md).
+dev = ["pytest==9.0.3"]
+
+[tool.setuptools.packages.find]
+include = ["cube3d*"]
+namespaces = false
+
+[tool.uv]
+# Exact versions get pinned in uv.lock after the first successful `uv lock`.
+# We intentionally do NOT define a [tool.uv.workspace] here: per migration plan 2.3,
+# new-cube and cubepart stay independent packages for now.
+
+# On Apple Silicon, torch MPS wheels are published to PyPI directly (no special index).
+[[tool.uv.index]]
+name = "pytorch-cpu-and-mps"
+url = "https://pypi.org/simple"

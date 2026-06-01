@@ -1,0 +1,18 @@
+[
+    {
+        "object": "bulldozer",
+        "prompt": "bulldozer"
+    },
+    {
+        "object": "dragon",
+        "prompt": "Broad-winged flying red dragon, elongated, folded legs."
+    },
+    {
+        "object": "boat",
+        "prompt": "a boat"
+    },
+    {
+        "object": "sword",
+        "prompt": "a purple crystal blade fantasy sword with green gem accents."
+    }
+]
