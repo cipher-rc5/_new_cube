@@ -78,7 +78,7 @@ def run_shape_decode(
     Args:
         shape_model (OneDAutoEncoder): The shape model.
         output_ids (torch.Tensor): The tensor containing the output IDs.
-        resolution_base (float, optional): The base resolution for geometry extraction. Defaults to 8.43.
+        resolution_base (float, optional): The base resolution for geometry extraction. Defaults to 8.0.
         chunk_size (int, optional): The chunk size for processing. Defaults to 100,000.
     Returns:
         tuple: A tuple containing the vertices and faces of the mesh.

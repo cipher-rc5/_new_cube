@@ -353,7 +353,7 @@ class Engine:
         Args:
             output_ids (torch.Tensor): The tensor containing the output IDs.
             resolution_base (float, optional): The base resolution for geometry extraction. Defaults to 8.0.
-            chunk_size (int, optional): The chunk size for processing. Defaults to 1,000,000.
+            chunk_size (int, optional): The chunk size for processing. Defaults to 250,000.
         Returns:
             tuple: A tuple containing the vertices and faces of the mesh.
         """
@@ -389,7 +389,7 @@ class Engine:
             use_kv_cache (bool): Whether to use key-value caching for the GPT model.
             guidance_scale (float, optional): The scale of guidance for the GPT model. Default is 3.0.
             resolution_base (float, optional): The base resolution for the shape decoder. Default is 8.0.
-            chunk_size (int, optional): The chunk size for processing the shape decoding. Default is 1,000,000.
+            chunk_size (int, optional): The chunk size for processing the shape decoding. Default is 250,000.
             top_p (float, optional): The cumulative probability threshold for nucleus sampling.
                 If None, argmax selection is performed (deterministic generation). Otherwise, smallest set of tokens with cumulative probability ≥ top_p are kept (stochastic generation).
             bounding_box_xyz (Tuple[float] | None, optional): The size of the bounding box for the generated mesh
