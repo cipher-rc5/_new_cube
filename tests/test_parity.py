@@ -34,7 +34,8 @@ import numpy as np
 import pytest
 
 # Hard requirement: the MLX backend itself.
-mx = pytest.importorskip("mlx")
+pytest.importorskip("mlx")
+import mlx.core as mx  # noqa: E402
 torch = pytest.importorskip("torch")
 
 from tests.conftest import weights_dir_or_skip
@@ -105,6 +106,89 @@ def test_mlx_run_gpt_argmax_matches_torch(repo_root, monkeypatch):
     # EXACT match required for argmax decoding (handoff boundary is integer IDs).
     assert np.array_equal(torch_arr, mlx_arr), (
         "MLX argmax output_ids diverged from torch reference"
+    )
+
+
+def test_mlx_rope_helper_matches_torch():
+    """``_apply_rope_at_positions`` must match torch's ``apply_rotary_emb``.
+
+    Pure dtype-equivalence check on synthetic tensors; needs neither MPS nor
+    real weights. Verifies both the full-sequence path (positions=None) and the
+    single-position decode path (positions=int) used by the KV-cache decode.
+    """
+    from cube3d.model.transformers.rope import apply_rotary_emb, precompute_freqs_cis
+    from cube3d.inference.mlx_engine import MlxEngine
+
+    torch.manual_seed(0)
+    B, NH, T, HD = 2, 4, 7, 16
+    x_t = torch.randn(B, NH, T, HD, dtype=torch.float32)
+    pos_t = torch.arange(T, dtype=torch.long).unsqueeze(0).expand(B, -1)
+    freqs_cis_t = precompute_freqs_cis(HD, pos_t, theta=10000.0)
+
+    # MLX-side cos/sin: freqs_cis is complex; cos = real, sin = imag.
+    freqs_np = freqs_cis_t.cpu().numpy()
+    cos = mx.array(freqs_np.real.astype(np.float32))
+    sin = mx.array(freqs_np.imag.astype(np.float32))
+    x_mx = mx.array(x_t.cpu().numpy())
+
+    # Full-sequence prefill path.
+    out_torch_full = apply_rotary_emb(x_t, freqs_cis_t, curr_pos_id=None).cpu().numpy()
+    out_mlx_full = np.array(
+        MlxEngine._apply_rope_at_positions(x_mx, cos, sin, positions=None)
+    )
+    np.testing.assert_allclose(out_mlx_full, out_torch_full, atol=1e-5, rtol=1e-5)
+
+    # Single-position decode path (rotate q at one absolute position).
+    pos = 3
+    x1_t = torch.randn(B, NH, 1, HD, dtype=torch.float32)
+    x1_mx = mx.array(x1_t.cpu().numpy())
+    out_torch_one = apply_rotary_emb(
+        x1_t, freqs_cis_t, curr_pos_id=torch.tensor([pos], dtype=torch.long)
+    ).cpu().numpy()
+    out_mlx_one = np.array(
+        MlxEngine._apply_rope_at_positions(x1_mx, cos, sin, positions=pos)
+    )
+    np.testing.assert_allclose(out_mlx_one, out_torch_one, atol=1e-5, rtol=1e-5)
+
+
+def test_mlx_run_gpt_argmax_with_kv_cache_matches_torch(repo_root, monkeypatch):
+    """KV-cache parity: MLX with use_kv_cache=True must match torch (no-cache).
+
+    The torch reference path uses use_kv_cache=False because the torch
+    KV-cache path accumulates its own fp differences (see the comment in
+    ``test_mlx_run_gpt_argmax_matches_torch``). The new MLX KV-cache path is
+    asserted against that same reference: the math must be identical to the
+    full-recompute path it replaces.
+    """
+    monkeypatch.setenv("CUBE_MPS_AUTOCAST_DTYPE", "float32")
+    weights_dir = weights_dir_or_skip()
+    _require_mps()
+    gpt_ckpt, shape_ckpt = _ckpt_paths(weights_dir)
+    config_path = os.path.join(repo_root, CONFIG_REL)
+
+    from cube3d.inference.engine import Engine
+    from cube3d.inference.mlx_engine import MlxEngine
+
+    torch_engine = Engine(
+        config_path, gpt_ckpt, shape_ckpt, device=torch.device("mps")
+    )
+    mlx_engine = MlxEngine(config_path, gpt_ckpt, shape_ckpt)
+
+    torch_ids = torch_engine.run_gpt(
+        [PROMPT], use_kv_cache=False, guidance_scale=3.0, top_p=None
+    )
+    mlx_ids = mlx_engine.run_gpt(
+        [PROMPT], use_kv_cache=True, guidance_scale=3.0, top_p=None
+    )
+
+    torch_arr = torch_ids.detach().cpu().numpy()
+    mlx_arr = mlx_ids.detach().cpu().numpy()
+
+    assert torch_arr.shape == mlx_arr.shape, (
+        f"output_ids shape mismatch: torch {torch_arr.shape} vs mlx {mlx_arr.shape}"
+    )
+    assert np.array_equal(torch_arr, mlx_arr), (
+        "MLX KV-cache argmax output_ids diverged from torch reference"
     )
 
 
