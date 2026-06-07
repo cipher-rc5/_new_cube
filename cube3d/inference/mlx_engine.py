@@ -40,6 +40,7 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 # --- MLX import guard: module must be safe to import when mlx is absent. ------
 try:
@@ -534,8 +535,9 @@ class MlxEngine:
             )
 
             # Write the pre-RoPE x-stream k/v at slot curr_pos_id + S.
-            slot = int(curr_pos_id) + int(cond_len)
-            assert kv_cache is not None
+            assert curr_pos_id is not None and kv_cache is not None
+            pos = int(curr_pos_id)
+            slot = pos + int(cond_len)
             kv_cache.update(slot, kx, vx)
 
             # Read back the full cache: cond at [0, S), x-stream at [S, S+L_so_far],
@@ -543,7 +545,7 @@ class MlxEngine:
             k_full = kv_cache.key_states
             v_full = kv_cache.value_states
             T_full = k_full.shape[2]
-            L_so_far = int(curr_pos_id) + 1  # number of x-stream tokens emitted so far
+            L_so_far = pos + 1  # number of x-stream tokens emitted so far
             valid_len = int(cond_len) + L_so_far
 
             # RoPE on q at single position (curr_pos_id + S), and on the entire
@@ -705,14 +707,14 @@ class MlxEngine:
                     self._get(p + "attn.c_v.bias", optional=True),
                 )
             )
+            assert curr_pos_id is not None and kv_cache is not None
             slot = int(curr_pos_id)
-            assert kv_cache is not None
             kv_cache.update(slot, k1, v1)
 
             k_full = kv_cache.key_states
             v_full = kv_cache.value_states
             T_full = k_full.shape[2]
-            valid_len = int(curr_pos_id) + 1
+            valid_len = slot + 1
 
             q = self._apply_rope_at_positions(q1, cos, sin, positions=slot)
             k_rot = self._apply_rope_at_positions(k_full, cos, sin, positions=(0, T_full))
@@ -962,7 +964,11 @@ class MlxEngine:
             self._empty_mps_cache()
 
             output_ids = []
-            for i in range(self.max_new_tokens):
+            for i in tqdm(
+                range(self.max_new_tokens),
+                desc="generating",
+                mininterval=0.5,
+            ):
                 cur_len = input_seq_len + i
                 logits = self._gpt_forward_full(embed_buffer[:, :cur_len, :], cond_mx)
                 logits = logits[:, cur_len - 1, :]
@@ -1016,7 +1022,11 @@ class MlxEngine:
         output_ids = [next_id]
 
         # Steps 1..N-1: decode loop, one token per iteration.
-        for i in range(1, self.max_new_tokens):
+        for i in tqdm(
+            range(1, self.max_new_tokens),
+            desc="generating",
+            mininterval=0.5,
+        ):
             # Embed the previous token directly in MLX. The torch ``wte`` has
             # been moved to CPU, but we have the exact same weight matrix in
             # ``self._params`` as an mx.array, so no MPS allocation is needed.
@@ -1076,7 +1086,7 @@ class MlxEngine:
         self,
         output_ids: torch.Tensor,
         resolution_base: float = 8.0,
-        chunk_size: int = 100_000,
+        chunk_size: int = 250_000,
     ):
         """Delegate shape decode to the torch engine (stays in PyTorch)."""
         output_ids = output_ids.to(self._torch_engine.device)
@@ -1095,7 +1105,7 @@ class MlxEngine:
         use_kv_cache: bool,
         guidance_scale: float = 3.0,
         resolution_base: float = 8.0,
-        chunk_size: int = 100_000,
+        chunk_size: int = 250_000,
         top_p: float | None = None,
         bounding_box_xyz: Optional[Tuple[float]] = None,
     ):
